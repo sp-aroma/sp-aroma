@@ -1,8 +1,7 @@
 from itertools import product as options_combination
-
+from config.database import DatabaseManager
 from fastapi import Request
 from sqlalchemy import select, and_, or_
-
 from apps.core.date_time import DateTime
 from apps.core.services.media import MediaService
 from apps.products.models import Product, ProductOption, ProductOptionItem, ProductVariant, ProductMedia
