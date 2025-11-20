@@ -88,6 +88,7 @@ class RegisterVerifyOut(BaseModel):
 class LoginOut(BaseModel):
     access_token: str
     token_type: str
+    is_superuser: bool   # 👈 ADDED
 
 
 # ------------------------
