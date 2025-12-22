@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from apps.orders.models import Order
-from apps.payments.services import PaymentService
+from apps.payments.services.factory import get_payment_gateway
 from apps.accounts.dependencies import get_current_user
 
 router = APIRouter(

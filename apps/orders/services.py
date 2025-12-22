@@ -3,7 +3,9 @@ from apps.payments.services.factory import get_payment_gateway
 from apps.orders.models import Order, OrderItem
 from apps.products.models import ProductVariant
 from config.database import SessionLocal
-
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+from apps.payments.models import Payment
 
 class OrderService:
 
@@ -91,3 +93,70 @@ class OrderService:
             order.save()
 
         return payment
+    
+    
+    @staticmethod
+    def create_from_cart(
+        session: Session,
+        user_id: int,
+        address_id: int,
+        cart,
+        mock_payment: bool = True,
+    ):
+        """
+        Converts Cart → Order
+        Payment is mocked until Razorpay is enabled
+        """
+
+        if not cart.items:
+            raise HTTPException(status_code=400, detail="Cart is empty")
+
+        total_amount = Decimal("0.00")
+
+        # 1️⃣ Create Order (NO currency here)
+        order = Order(
+            user_id=user_id,
+            address_id=address_id,
+            status="PLACED",
+            total_amount=Decimal("0.00"),  # temp
+        )
+        session.add(order)
+        session.flush()  # get order.id
+
+        # 2️⃣ Create Order Items
+        for item in cart.items:
+            price = (
+                item.variant.price
+                if item.variant_id
+                else item.product.price
+            )
+
+            subtotal = price * item.quantity
+            total_amount += subtotal
+
+            session.add(
+                OrderItem(
+                    order_id=order.id,
+                    product_id=item.product_id,
+                    variant_id=item.variant_id,
+                    quantity=item.quantity,
+                    price=price,
+                )
+            )
+
+        # 3️⃣ Update order total
+        order.total_amount = total_amount
+
+       # 4️⃣ Mock Payment (schema-safe)
+        if mock_payment:
+            payment = Payment(
+                order_id=order.id,
+                amount=total_amount,
+                status="SUCCESS",
+            )
+            session.add(payment)
+
+        session.commit()
+        session.refresh(order)
+
+        return order

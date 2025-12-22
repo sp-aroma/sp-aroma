@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, status
+# apps/cart/routers.py
 
+from fastapi import APIRouter, Depends
 from apps.accounts.dependencies import get_current_user
 from apps.cart.schemas import (
     AddToCartIn,
@@ -16,7 +17,7 @@ def add_to_cart(payload: AddToCartIn, user=Depends(get_current_user)):
     return CartService.add_item(user.id, payload.dict())
 
 
-@router.get("", response_model=CartOut)
+@router.get("/", response_model=CartOut)
 def get_cart(user=Depends(get_current_user)):
     return CartService.get_cart(user.id)
 

@@ -19,9 +19,9 @@ class Order(FastModel):
 
     user_id = Column(Integer, nullable=False)
     address_id = Column(Integer, nullable=False)
-
+    currency = Column(String, default="INR", nullable=False)
+    currency = Column(String, default="INR", nullable=False)
     total_amount = Column(Numeric(10, 2), nullable=False)
-
     status = Column(
         String,
         default="created"

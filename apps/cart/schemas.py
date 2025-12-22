@@ -1,11 +1,12 @@
+# apps/cart/schemas.py
+
+from typing import List, Optional
 from pydantic import BaseModel
-from typing import List
-from decimal import Decimal
 
 
 class AddToCartIn(BaseModel):
     product_id: int
-    variant_id: int
+    variant_id: Optional[int] = None
     quantity: int = 1
 
 
@@ -16,12 +17,13 @@ class UpdateCartItemIn(BaseModel):
 class CartItemOut(BaseModel):
     id: int
     product_id: int
-    variant_id: int
+    variant_id: Optional[int]
     quantity: int
-    price: Decimal
-    total: Decimal
+    price: float
+    subtotal: float
 
 
 class CartOut(BaseModel):
     items: List[CartItemOut]
-    total_amount: Decimal
+    total_amount: float
+    currency: str = "INR"
