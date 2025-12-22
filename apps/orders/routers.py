@@ -1,59 +1,19 @@
-from fastapi import APIRouter, Depends, status
-from fastapi.responses import JSONResponse
-
-from apps.orders.schemas import CreateOrderIn
+from fastapi import APIRouter, Depends
 from apps.orders.services import OrderService
-from apps.accounts.dependencies import get_current_user
-
-router = APIRouter(
-    prefix="/orders",
-    tags=["Orders"]
-)
+from apps.accounts.dependencies import get_current_user, require_superuser
+router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
-@router.post(
-    "/",
-    status_code=status.HTTP_201_CREATED
-)
-def create_order(
-    payload: CreateOrderIn,
-    user=Depends(get_current_user)
-):
-    order = OrderService.create_order(
-        user_id=user.id,
-        data=payload.model_dump()
-    )
-    return {"order": order}
+@router.get("/")
+def list_my_orders(user=Depends(get_current_user)):
+    return OrderService.get_user_orders(user.id)
 
 
-@router.get(
-    "/{order_id}",
-    status_code=status.HTTP_200_OK
-)
-def retrieve_order(
-    order_id: int,
-    user=Depends(get_current_user)
-):
-    order = OrderService.retrieve_order(order_id)
-    return {"order": order}
+@router.get("/{order_id}")
+def get_my_order(order_id: int, user=Depends(get_current_user)):
+    return OrderService.get_user_order(user.id, order_id)
 
 
-@router.get(
-    "/",
-    status_code=status.HTTP_200_OK
-)
-def list_my_orders(
-    user=Depends(get_current_user)
-):
-    orders = OrderService.list_user_orders(user.id)
-
-    if not orders:
-        return JSONResponse(status_code=204, content=None)
-
-    return {"orders": orders}
-
-@router.post("/{order_id}/checkout")
-def checkout_order(order_id: int):
-    order = Order.get_or_404(order_id)
-    return OrderService.checkout(order)
-
+@router.get("/admin/allorders")
+def get_all_orders(admin=Depends(require_superuser)):
+    return OrderService.get_all_success_orders()

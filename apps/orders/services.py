@@ -1,100 +1,66 @@
 from decimal import Decimal
-from apps.payments.services.factory import get_payment_gateway
-from apps.orders.models import Order, OrderItem
-from apps.products.models import ProductVariant
-from config.database import SessionLocal
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+
+from apps.orders.models import Order, OrderItem
 from apps.payments.models import Payment
+from config.database import SessionLocal
 
 class OrderService:
 
+    # ------------------------
+    # USER
+    # ------------------------
+
     @staticmethod
-    def create_order(user_id: int, data: dict):
-        items = data["items"]
-        address_id = data["address_id"]
-
-        total_amount = Decimal("0.00")
-        order_items = []
-
+    def get_user_orders(user_id: int):
         with SessionLocal() as session:
-
-            for item in items:
-                variant = session.get(ProductVariant, item["variant_id"])
-
-                if not variant:
-                    raise ValueError("Invalid product variant")
-
-                item_total = variant.price * item["quantity"]
-                total_amount += item_total
-
-                order_items.append(
-                    OrderItem(
-                        product_id=variant.product_id,
-                        variant_id=variant.id,
-                        quantity=item["quantity"],
-                        price=variant.price
-                    )
-                )
-
-            order = Order.create(
-                user_id=user_id,
-                address_id=address_id,
-                total_amount=total_amount,
-                status="created"
+            orders = (
+                session.query(Order)
+                .filter(Order.user_id == user_id)
+                .order_by(Order.created_at.desc())
+                .all()
             )
 
-            for oi in order_items:
-                oi.order_id = order.id
-                session.add(oi)
-
-            session.commit()
-            session.refresh(order)
-
-        return OrderService.retrieve_order(order.id)
+            return [OrderService._serialize(order) for order in orders]
 
     @staticmethod
-    def retrieve_order(order_id: int):
-        order = Order.get_or_404(order_id)
+    def get_user_order(user_id: int, order_id: int):
+        with SessionLocal() as session:
+            order = (
+                session.query(Order)
+                .filter(
+                    Order.id == order_id,
+                    Order.user_id == user_id
+                )
+                .first()
+            )
 
-        return {
-            "id": order.id,
-            "total_amount": order.total_amount,
-            "status": order.status,
-            "created_at": order.created_at,
-            "items": [
-                {
-                    "product_id": item.product_id,
-                    "variant_id": item.variant_id,
-                    "quantity": item.quantity,
-                    "price": item.price
-                }
-                for item in order.items
-            ]
-        }
+            if not order:
+                raise HTTPException(status_code=404, detail="Order not found")
 
-    @staticmethod
-    def list_user_orders(user_id: int):
-        orders = Order.filter(Order.user_id == user_id).all()
+            return OrderService._serialize(order)
 
-        return [
-            OrderService.retrieve_order(order.id)
-            for order in orders
-        ]
+    # ------------------------
+    # ADMIN
+    # ------------------------
 
     @staticmethod
-    def checkout(order):
-        gateway = get_payment_gateway()
+    def get_all_success_orders():
+        with SessionLocal() as session:
+            orders = (
+                session.query(Order)
+                .filter(Order.status == "SUCCESS")
+                .order_by(Order.created_at.desc())
+                .all()
+            )
 
-        payment = gateway.create_payment(order)
+            return [OrderService._serialize(order) for order in orders]
 
-        if payment["status"] == "success":
-            order.status = "paid"
-            order.save()
+    # ------------------------
+    # CART → ORDER
+    # ------------------------
 
-        return payment
-    
-    
     @staticmethod
     def create_from_cart(
         session: Session,
@@ -103,27 +69,22 @@ class OrderService:
         cart,
         mock_payment: bool = True,
     ):
-        """
-        Converts Cart → Order
-        Payment is mocked until Razorpay is enabled
-        """
-
         if not cart.items:
             raise HTTPException(status_code=400, detail="Cart is empty")
 
         total_amount = Decimal("0.00")
 
-        # 1️⃣ Create Order (NO currency here)
+        # 1️⃣ Create Order
         order = Order(
             user_id=user_id,
             address_id=address_id,
-            status="PLACED",
-            total_amount=Decimal("0.00"),  # temp
+            status="SUCCESS" if mock_payment else "PENDING",
+            total_amount=Decimal("0.00"),
         )
         session.add(order)
-        session.flush()  # get order.id
+        session.flush()
 
-        # 2️⃣ Create Order Items
+        # 2️⃣ Order Items
         for item in cart.items:
             price = (
                 item.variant.price
@@ -144,19 +105,38 @@ class OrderService:
                 )
             )
 
-        # 3️⃣ Update order total
         order.total_amount = total_amount
 
-       # 4️⃣ Mock Payment (schema-safe)
+        # 3️⃣ Payment (mock-safe)
         if mock_payment:
-            payment = Payment(
-                order_id=order.id,
-                amount=total_amount,
-                status="SUCCESS",
+            session.add(
+                Payment(
+                    order_id=order.id,
+                    amount=total_amount,
+                    status="SUCCESS",
+                )
             )
-            session.add(payment)
 
         session.commit()
         session.refresh(order)
-
         return order
+
+    # ------------------------
+
+    @staticmethod
+    def _serialize(order: Order):
+        return {
+            "id": order.id,
+            "total_amount": order.total_amount,
+            "status": order.status,
+            "created_at": order.created_at,
+            "items": [
+                {
+                    "product_id": item.product_id,
+                    "variant_id": item.variant_id,
+                    "quantity": item.quantity,
+                    "price": item.price,
+                }
+                for item in order.items
+            ],
+        }

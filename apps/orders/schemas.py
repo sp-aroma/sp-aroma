@@ -3,24 +3,11 @@ from typing import List
 from decimal import Decimal
 from datetime import datetime
 
-
-class OrderItemIn(BaseModel):
-    product_id: int
-    variant_id: int | None = None
-    quantity: int
-
-
-class CreateOrderIn(BaseModel):
-    address_id: int
-    items: List[OrderItemIn]
-
-
 class OrderItemOut(BaseModel):
     product_id: int
     variant_id: int | None
     quantity: int
     price: Decimal
-
 
 class OrderOut(BaseModel):
     id: int
@@ -28,7 +15,6 @@ class OrderOut(BaseModel):
     status: str
     created_at: datetime
     items: List[OrderItemOut]
-
 
 class OrderListOut(BaseModel):
     orders: List[OrderOut]
