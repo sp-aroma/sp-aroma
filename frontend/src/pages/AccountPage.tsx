@@ -4,8 +4,9 @@ import OrderHistorySection from '../components/dashboard/OrderHistorySection';
 import ProfileSection from '../components/dashboard/ProfileSection';
 import SalesSection from '../components/dashboard/SalesSection';
 import AdminProductsSection from '../components/dashboard/AdminProductsSection';
+import AddressesSection from '../components/dashboard/AddressesSection';
 
-export type DashboardView = 'profile' | 'orders' | 'sales' | 'products';
+export type DashboardView = 'profile' | 'orders' | 'addresses' | 'sales' | 'products';
 
 const AccountPage = () => {
   const [activeView, setActiveView] = useState<DashboardView>('profile');
@@ -21,6 +22,7 @@ const AccountPage = () => {
           <div className="lg:col-span-3">
             {activeView === 'profile' && <ProfileSection />}
             {activeView === 'orders' && <OrderHistorySection />}
+            {activeView === 'addresses' && <AddressesSection />}
             {activeView === 'sales' && <SalesSection />}
             {activeView === 'products' && <AdminProductsSection />}
           </div>

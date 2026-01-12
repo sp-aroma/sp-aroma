@@ -104,3 +104,14 @@ class AccountService:
         if not PasswordManager.verify_password(password, user.password):
             return False
         return user
+
+    # --------------
+    # --- Logout ---
+    # --------------
+
+    @classmethod
+    def logout(cls, user: User):
+        """Logout user by invalidating their access token"""
+        token = TokenService(user)
+        token.reset_access_token()
+        return {"message": "Successfully logged out"}

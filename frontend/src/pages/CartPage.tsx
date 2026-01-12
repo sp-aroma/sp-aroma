@@ -4,14 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import AddressModal from '../components/AddressModal';
-import { apiCheckout } from '../lib/api';
 
 const CartPage = () => {
-  const { cartItems, removeFromCart, updateItemQuantity, cartTotal, cartCount, clearCart } = useCart();
+  const { cartItems, removeFromCart, updateItemQuantity, cartTotal, cartCount } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleProceedToCheckout = () => {
     if (!isAuthenticated) {
@@ -21,25 +19,10 @@ const CartPage = () => {
     setShowAddressModal(true);
   };
 
-  const handleCheckout = async (addressId: number) => {
-    setIsProcessing(true);
-    try {
-      const result = await apiCheckout(addressId);
-      console.log('Checkout result:', result);
-      
-      // Clear the cart after successful checkout
-      clearCart();
-      
-      // Show success message and redirect
-      alert('Order placed successfully!');
-      navigate('/account');
-    } catch (err: any) {
-      console.error('Checkout failed', err);
-      const errorMsg = err?.body?.detail || err?.message || 'Checkout failed. Please try again.';
-      alert('Checkout error: ' + errorMsg);
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleAddressSelect = (addressId: number) => {
+    setShowAddressModal(false);
+    // Navigate to checkout page with selected address
+    navigate('/checkout', { state: { addressId } });
   };
 
   if (cartCount === 0) {
@@ -128,10 +111,9 @@ const CartPage = () => {
               </div>
               <button 
                 onClick={handleProceedToCheckout}
-                disabled={isProcessing}
-                className="w-full mt-8 bg-heading text-white font-sans uppercase text-lg tracking-wider py-3.5 rounded-md hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-8 bg-heading text-white font-sans uppercase text-lg tracking-wider py-3.5 rounded-md hover:bg-opacity-90 transition-colors"
               >
-                {isProcessing ? 'Processing...' : 'Proceed to Checkout'}
+                Proceed to Checkout
               </button>
               {!isAuthenticated && (
                 <p className="text-sm text-center text-gray-600 mt-4">
@@ -146,7 +128,7 @@ const CartPage = () => {
       <AddressModal
         isOpen={showAddressModal}
         onClose={() => setShowAddressModal(false)}
-        onSelectAddress={handleCheckout}
+        onSelectAddress={handleAddressSelect}
       />
     </>
   );

@@ -50,6 +50,28 @@ async def create_product(request: Request, product: schemas.CreateProductIn):
     }
 
 
+@router.post(
+    "/comprehensive",
+    status_code=status.HTTP_201_CREATED,
+    response_model=schemas.CreateProductOut,
+    summary="Create a comprehensive product with variants and images",
+    tags=["Product"],
+    dependencies=[
+        Depends(require_superuser),
+        Depends(Permission.is_admin),
+    ],
+)
+async def create_product_comprehensive(request: Request, product: schemas.CreateProductWithVariantsIn):
+    """
+    Create a product with all its variants and images in a single request.
+    Supports multi-step product creation from the frontend.
+    """
+    return {
+        "product": ProductService(request).create_product_with_variants(product.model_dump())
+    }
+
+
+
 @router.get(
     "/{product_id}",
     status_code=status.HTTP_200_OK,
@@ -73,7 +95,7 @@ async def retrieve_product(request: Request, product_id: int):
 async def list_products(request: Request):
     products = ProductService(request).list_products()
     if not products:
-        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+        return {"products": []}
     return {"products": products}
 
 

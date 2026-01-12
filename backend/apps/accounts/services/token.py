@@ -70,12 +70,17 @@ class TokenService:
         return access_token
 
     def update_access_token(self, token: str):
-        UserVerification.update(UserVerification.filter(UserVerification.user_id == self.user_id).first().id,
-                                active_access_token=token)
+        user_verification = UserVerification.filter(UserVerification.user_id == self.user_id).first()
+        if user_verification:
+            UserVerification.update(user_verification.id, active_access_token=token)
+        else:
+            # Create UserVerification record if it doesn't exist
+            UserVerification.create(user_id=self.user_id, active_access_token=token)
 
     def reset_access_token(self):
-        UserVerification.update(UserVerification.filter(UserVerification.user_id == self.user_id).first().id,
-                                active_access_token=None)
+        user_verification = UserVerification.filter(UserVerification.user_id == self.user_id).first()
+        if user_verification:
+            UserVerification.update(user_verification.id, active_access_token=None)
 
     @classmethod
     async def fetch_user(cls, token: str) -> User:
@@ -109,7 +114,11 @@ class TokenService:
         UserManager.is_active(user)
 
         # --- validate access token ---
-        active_access_token = UserVerification.filter(UserVerification.user_id == user_id).first().active_access_token
+        user_verification = UserVerification.filter(UserVerification.user_id == user_id).first()
+        if not user_verification:
+            raise cls.credentials_exception
+        
+        active_access_token = user_verification.active_access_token
         if token != active_access_token:
             raise cls.credentials_exception
 

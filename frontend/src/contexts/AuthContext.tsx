@@ -31,6 +31,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchMe = async () => {
     setIsLoading(true);
     try {
+      // Only fetch if token exists
+      const token = localStorage.getItem('spAromaToken');
+      if (!token) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
       const data = await getJson('/accounts/me');
       let fetchedUser = data?.profile || data?.user || null;
       // If backend doesn't return is_superuser in /accounts/me, check localStorage set at login
@@ -38,8 +46,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const su = localStorage.getItem('spAromaIsSuper');
         if (su && fetchedUser) fetchedUser = { ...fetchedUser, is_superuser: su === 'true' };
       } catch (e) {}
+      // Add is_admin as alias for is_superuser for convenience
+      if (fetchedUser && fetchedUser.is_superuser) {
+        fetchedUser = { ...fetchedUser, is_admin: fetchedUser.is_superuser };
+      }
       setUser(fetchedUser);
-    } catch (err) {
+    } catch (err: any) {
+      // Clear token if 401 Unauthorized
+      if (err?.status === 401) {
+        localStorage.removeItem('spAromaToken');
+        localStorage.removeItem('spAromaIsSuper');
+      }
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -74,7 +91,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if ((tokenOrSession as any).user) {
           const u = (tokenOrSession as any).user;
           const su = (typeof (tokenOrSession as any).is_superuser !== 'undefined') ? (tokenOrSession as any).is_superuser : undefined;
-          setUser(su !== undefined ? { ...u, is_superuser: su } : u);
+          const userWithFlags = su !== undefined ? { ...u, is_superuser: su, is_admin: su } : u;
+          setUser(userWithFlags);
           // still refresh to get latest data
         }
       }

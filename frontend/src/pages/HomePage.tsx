@@ -9,7 +9,7 @@ import InstagramSection from '../components/sections/InstagramSection';
 import ProductShowcase from '../components/sections/ProductShowcase';
 import FeaturedProduct from '../components/sections/FeaturedProduct';
 import { useEffect, useState } from 'react';
-import { getJson } from '../lib/api';
+import { apiGetProducts } from '../lib/api';
 import { Product } from '../types';
 
 const HomePage = () => {
@@ -21,7 +21,7 @@ const HomePage = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await getJson('/products');
+        const res = await apiGetProducts();
         const items = res?.products || [];
         const mapped: Product[] = items.map((p: any) => ({
           id: p.product_id,

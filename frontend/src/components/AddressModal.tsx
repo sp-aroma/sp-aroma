@@ -75,31 +75,65 @@ const AddressModal = ({ isOpen, onClose, onSelectAddress }: AddressModalProps) =
             <p className="text-center py-4">Loading addresses...</p>
           ) : (
             <>
+              {addresses.length === 0 && !showAddForm && (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 mb-4">You don't have any saved addresses yet.</p>
+                  <p className="text-sm text-gray-500 mb-4">Add a delivery address to continue with checkout.</p>
+                </div>
+              )}
+
               {addresses.length > 0 && (
                 <div className="space-y-4 mb-6">
-                  {addresses.map((addr) => (
-                    <div
-                      key={addr.address_id}
-                      className="border border-gray-200 rounded-lg p-4 hover:border-heading cursor-pointer transition-colors"
-                      onClick={() => {
-                        if (addr.address_id) {
-                          onSelectAddress(addr.address_id);
-                          onClose();
-                        }
-                      }}
-                    >
-                      <div className="font-medium">{addr.street}</div>
-                      <div className="text-sm text-gray-600">
-                        {addr.city}, {addr.state} {addr.postal_code}
+                  <p className="text-sm text-gray-600 mb-3">Click on an address to select it for delivery</p>
+                  {addresses.map((addr) => {
+                    const addressId = addr.id || addr.address_id;
+                    return (
+                      <div
+                        key={addressId}
+                        className="border-2 border-gray-200 rounded-lg p-4 hover:border-heading hover:bg-heading/5 cursor-pointer transition-all group"
+                        onClick={() => {
+                          if (addressId) {
+                            onSelectAddress(addressId);
+                          }
+                        }}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">
+                              {addr.full_name || 'Address'}
+                              {addr.is_default && (
+                                <span className="ml-2 inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                            {addr.phone && (
+                              <div className="text-sm text-gray-600 mt-1">{addr.phone}</div>
+                            )}
+                            <div className="text-sm text-gray-600 mt-1">
+                              {addr.line1 || addr.street}
+                              {(addr.line2) && `, ${addr.line2}`}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {addr.city}, {addr.state} - {addr.pincode || addr.postal_code}
+                            </div>
+                            <div className="text-sm text-gray-600">{addr.country}</div>
+                          </div>
+                          <button
+                            className="px-4 py-2 bg-heading text-white rounded hover:bg-heading/90 transition-colors opacity-0 group-hover:opacity-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (addressId) {
+                                onSelectAddress(addressId);
+                              }
+                            }}
+                          >
+                            Select
+                          </button>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-600">{addr.country}</div>
-                      {addr.is_default && (
-                        <span className="inline-block mt-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-                          Default
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 

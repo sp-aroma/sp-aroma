@@ -220,3 +220,75 @@ class UserManager:
                 status.HTTP_403_FORBIDDEN,
                 "Please verify your email address to continue.",
             )
+
+    # --------------------------------------------------------
+    # ADMIN USER MANAGEMENT
+    # --------------------------------------------------------
+    @staticmethod
+    def get_all_users(skip: int = 0, limit: int = 100):
+        """Get all users with pagination"""
+        db: Session = SessionLocal()
+        try:
+            return db.query(User).offset(skip).limit(limit).all()
+        finally:
+            db.close()
+
+    @staticmethod
+    def count_users():
+        """Count total users"""
+        db: Session = SessionLocal()
+        try:
+            return db.query(User).count()
+        finally:
+            db.close()
+
+    @staticmethod
+    def count_active_users():
+        """Count active users"""
+        db: Session = SessionLocal()
+        try:
+            return db.query(User).filter(User.is_active == True).count()
+        finally:
+            db.close()
+
+    @staticmethod
+    def count_verified_users():
+        """Count verified users"""
+        db: Session = SessionLocal()
+        try:
+            return db.query(User).filter(User.is_verified_email == True).count()
+        finally:
+            db.close()
+
+    @staticmethod
+    def get_user_by_id(user_id: int):
+        """Get user by ID"""
+        db: Session = SessionLocal()
+        try:
+            return db.query(User).filter(User.id == user_id).first()
+        finally:
+            db.close()
+
+    @staticmethod
+    def save_user(user: User):
+        """Save/update user"""
+        db: Session = SessionLocal()
+        try:
+            db.merge(user)
+            db.commit()
+        finally:
+            db.close()
+
+    @staticmethod
+    def delete_user(user_id: int) -> bool:
+        """Delete user by ID"""
+        db: Session = SessionLocal()
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                db.delete(user)
+                db.commit()
+                return True
+            return False
+        finally:
+            db.close()

@@ -80,6 +80,7 @@ class ProductMedia(FastModel):
 
     id = Column(Integer, primary_key=True)
     product_id = Column(Integer, ForeignKey("products.id"))
+    variant_id = Column(Integer, ForeignKey("product_variants.id", ondelete="CASCADE"), nullable=True)
 
     alt = Column(String, nullable=True)
 

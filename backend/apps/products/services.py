@@ -38,6 +38,94 @@ class ProductService:
         return cls.retrieve_product(cls.product.id)
 
     @classmethod
+    def create_product_with_variants(cls, data: dict):
+        """
+        Comprehensive product creation with variants and images.
+        Handles step-by-step product creation from the frontend.
+        """
+        # Extract all data
+        product_data = {
+            'product_name': data.get('product_name'),
+            'description': data.get('description'),
+            'status': data.get('status', 'draft')
+        }
+        
+        options_data = data.get('options', [])
+        variants_data = data.get('variants', [])
+        product_images_data = data.get('product_images', [])
+        
+        # Step 1: Create the base product
+        cls.product = Product.create(**product_data)
+        
+        # Step 2: Create options and their items
+        option_items_map = {}  # Maps option values to item IDs
+        if options_data:
+            for option in options_data:
+                new_option = ProductOption.create(
+                    product_id=cls.product.id, 
+                    option_name=option['option_name']
+                )
+                
+                for item_name in option['items']:
+                    new_item = ProductOptionItem.create(
+                        option_id=new_option.id, 
+                        item_name=item_name
+                    )
+                    # Map the item name to its ID for later variant creation
+                    option_items_map[item_name] = new_item.id
+        
+        # Step 3: Create variants with their specific data
+        if variants_data:
+            for variant in variants_data:
+                # Map option values (strings) to option item IDs
+                option1_id = option_items_map.get(variant.get('option1')) if variant.get('option1') else None
+                option2_id = option_items_map.get(variant.get('option2')) if variant.get('option2') else None
+                option3_id = option_items_map.get(variant.get('option3')) if variant.get('option3') else None
+                
+                # Create the variant
+                new_variant = ProductVariant.create(
+                    product_id=cls.product.id,
+                    option1=option1_id,
+                    option2=option2_id,
+                    option3=option3_id,
+                    price=variant['price'],
+                    stock=variant['stock']
+                )
+                
+                # Create variant-specific images
+                variant_images = variant.get('images', [])
+                for img in variant_images:
+                    ProductMedia.create(
+                        product_id=cls.product.id,
+                        variant_id=new_variant.id,  # Link to specific variant
+                        alt=img.get('alt'),
+                        src=img['src'],
+                        type=img.get('type', 'image'),
+                        cloudinary_id=img['cloudinary_id']
+                    )
+        else:
+            # No variants - create a default variant
+            ProductVariant.create(
+                product_id=cls.product.id,
+                price=0,
+                stock=0
+            )
+        
+        # Step 4: Create product-level images (not variant-specific)
+        for img in product_images_data:
+            ProductMedia.create(
+                product_id=cls.product.id,
+                variant_id=None,  # Product-level image
+                alt=img.get('alt'),
+                src=img['src'],
+                type=img.get('type', 'image'),
+                cloudinary_id=img['cloudinary_id']
+            )
+        
+        # Return the complete product data
+        return cls.retrieve_product(cls.product.id)
+
+    @classmethod
     def _create_product(cls, data: dict):
         cls.price = data.pop('price', 0)
         cls.stock = data.pop('stock', 0)

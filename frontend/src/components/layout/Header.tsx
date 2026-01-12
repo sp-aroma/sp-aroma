@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, User, ShoppingBag } from 'lucide-react';
+import { Menu, X, User, ShoppingBag, LayoutDashboard, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,8 +8,13 @@ import { useAuth } from '../../contexts/AuthContext';
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { cartCount } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
 
   const navLinks = [
     { name: "Home", href: "/" },
@@ -19,6 +24,16 @@ const Header = () => {
     { name: "Reviews", href: "/#reviews" },
     { name: "Connect", href: "/#connect" },
   ];
+
+  const handleUserIconClick = () => {
+    if (!isAuthenticated) {
+      navigate('/auth');
+    } else if (user?.is_admin || user?.is_superuser) {
+      navigate('/admin');
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   const renderNavLink = (link: { name: string, href: string }, isMobile: boolean = false) => {
     const className = isMobile
@@ -52,8 +67,13 @@ const Header = () => {
               {navLinks.map(link => renderNavLink(link))}
             </nav>
             <div className="hidden lg:flex items-center gap-6">
-              <button onClick={() => isAuthenticated ? navigate('/account') : navigate('/auth')} className="text-dark-text hover:text-heading transition-colors" aria-label="My Account">
-                <User size={22} strokeWidth={1.5} />
+              <button 
+                onClick={handleUserIconClick} 
+                className="text-dark-text hover:text-heading transition-colors" 
+                aria-label={isAuthenticated ? ((user?.is_admin || user?.is_superuser) ? "Admin Dashboard" : "My Dashboard") : "Login"}
+                title={isAuthenticated ? ((user?.is_admin || user?.is_superuser) ? "Admin Dashboard" : "My Dashboard") : "Login"}
+              >
+                {isAuthenticated ? <LayoutDashboard size={22} strokeWidth={1.5} /> : <User size={22} strokeWidth={1.5} />}
               </button>
               <Link to="/cart" className="relative text-dark-text hover:text-heading transition-colors" aria-label="Shopping Cart">
                 <ShoppingBag size={22} strokeWidth={1.5} />
@@ -63,12 +83,26 @@ const Header = () => {
                   </span>
                 )}
               </Link>
+              {isAuthenticated && (
+                <button 
+                  onClick={handleLogout}
+                  className="text-dark-text hover:text-heading transition-colors" 
+                  aria-label="Logout"
+                  title="Logout"
+                >
+                  <LogOut size={22} strokeWidth={1.5} />
+                </button>
+              )}
             </div>
           </div>
 
           <div className="flex items-center gap-4 lg:hidden">
-            <button onClick={() => isAuthenticated ? navigate('/account') : navigate('/auth')} className="text-dark-text hover:text-heading transition-colors" aria-label="My Account">
-              <User size={26} strokeWidth={1.5} />
+            <button 
+              onClick={handleUserIconClick} 
+              className="text-dark-text hover:text-heading transition-colors" 
+              aria-label={isAuthenticated ? ((user?.is_admin || user?.is_superuser) ? "Admin Dashboard" : "My Dashboard") : "Login"}
+            >
+              {isAuthenticated ? <LayoutDashboard size={26} strokeWidth={1.5} /> : <User size={26} strokeWidth={1.5} />}
             </button>
             <Link to="/cart" className="relative text-dark-text hover:text-heading transition-colors" aria-label="Shopping Cart">
                 <ShoppingBag size={26} strokeWidth={1.5} />
@@ -78,6 +112,15 @@ const Header = () => {
                   </span>
                 )}
               </Link>
+            {isAuthenticated && (
+              <button 
+                onClick={handleLogout}
+                className="text-dark-text hover:text-heading transition-colors" 
+                aria-label="Logout"
+              >
+                <LogOut size={26} strokeWidth={1.5} />
+              </button>
+            )}
             <button
               className="p-2 text-dark-text hover:text-heading"
               onClick={() => setIsMenuOpen(!isMenuOpen)}

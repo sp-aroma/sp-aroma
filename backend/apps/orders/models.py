@@ -14,6 +14,7 @@ class Order(FastModel):
     created_at = Column(DateTime, server_default=func.now())
 
     items = relationship("OrderItem", back_populates="order")
+    payments = relationship("Payment", back_populates="order")
 
 
 class OrderItem(FastModel):

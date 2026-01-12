@@ -212,5 +212,16 @@ async def verify_change_email(otp: schemas.EmailChangeVerifyIn,
 async def retrieve_user(user_id: int):
     return {'user': UserManager.to_dict(UserManager.get_user(user_id))}
 
-# TODO DELETE /accounts/me
-# TODO add docs and examples to endpoints
+
+@router.delete(
+    '/me',
+    status_code=status.HTTP_200_OK,
+    summary='Delete current user account',
+    description='Delete the current user account. This action is permanent and cannot be undone.',
+    tags=['Users'])
+async def delete_me(current_user: User = Depends(AccountService.current_user)):
+    """Delete current user account"""
+    success = UserManager.delete_user(current_user.id)
+    if not success:
+        raise HTTPException(status_code=400, detail="Failed to delete account")
+    return {"message": "Account deleted successfully"}

@@ -26,17 +26,31 @@ class RouterManager:
         for app_dir in self.apps_directory.iterdir():
             if not app_dir.is_dir():
                 continue
+            
+            # Import regular routers.py
             routers_file = app_dir / "routers.py"
-            if not routers_file.exists():
-                continue
-
-            module_name = f"apps.{app_dir.name}.routers"
-            try:
-                module = importlib.import_module(module_name)
-                if hasattr(module, "router"):
-                    self.app.include_router(module.router)
-                    logger.info(f"Imported router: {module_name}")
-                else:
-                    logger.warning(f"No 'router' found in {module_name}")
-            except Exception as exc:
-                logger.error(f"Failed to import {module_name}: {exc}", exc_info=True)
+            if routers_file.exists():
+                module_name = f"apps.{app_dir.name}.routers"
+                try:
+                    module = importlib.import_module(module_name)
+                    if hasattr(module, "router"):
+                        self.app.include_router(module.router)
+                        logger.info(f"Imported router: {module_name}")
+                    else:
+                        logger.warning(f"No 'router' found in {module_name}")
+                except Exception as exc:
+                    logger.error(f"Failed to import {module_name}: {exc}", exc_info=True)
+            
+            # Import admin routers (routers_admin.py)
+            admin_routers_file = app_dir / "routers_admin.py"
+            if admin_routers_file.exists():
+                admin_module_name = f"apps.{app_dir.name}.routers_admin"
+                try:
+                    admin_module = importlib.import_module(admin_module_name)
+                    if hasattr(admin_module, "router"):
+                        self.app.include_router(admin_module.router)
+                        logger.info(f"Imported admin router: {admin_module_name}")
+                    else:
+                        logger.warning(f"No 'router' found in {admin_module_name}")
+                except Exception as exc:
+                    logger.error(f"Failed to import {admin_module_name}: {exc}", exc_info=True)

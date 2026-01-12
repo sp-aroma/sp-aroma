@@ -87,10 +87,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (user) {
       // Add to backend cart
       try {
-        // We need variant_id for the backend API
-        // If product has a variantId, use it, otherwise use the product id as variant
-        const variantId = (product as any).variantId ?? product.id;
-        await apiAddToCart(variantId, quantity);
+        // Send product_id and optional variant_id
+        const variantId = (product as any).variantId;
+        await apiAddToCart(product.id, quantity, variantId);
         await refreshCart();
       } catch (err) {
         console.error('Failed to add to cart on backend', err);

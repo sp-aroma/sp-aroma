@@ -1,11 +1,11 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode }: { mode: string }) => {
   // Load env vars for the current mode (dev / prod)
-  const env = loadEnv(mode, process.cwd(), '');
+  const env = loadEnv(mode, '.', '');
 
-  const API_BASE = env.VITE_API_BASE;
+  const API_BASE = env.VITE_API_BASE || 'http://127.0.0.1:8000';
 
   return {
     plugins: [react()],
@@ -53,6 +53,16 @@ export default defineConfig(({ mode }) => {
           secure: true,
         },
         '/attributes': {
+          target: API_BASE,
+          changeOrigin: true,
+          secure: true,
+        },
+        '/admin/users': {
+          target: API_BASE,
+          changeOrigin: true,
+          secure: true,
+        },
+        '/admin/analytics': {
           target: API_BASE,
           changeOrigin: true,
           secure: true,

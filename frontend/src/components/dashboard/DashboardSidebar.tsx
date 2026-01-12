@@ -1,4 +1,4 @@
-import { User, Package, LogOut, ShoppingCart, Database } from 'lucide-react';
+import { User, Package, LogOut, ShoppingCart, Database, MapPin } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { DashboardView } from '../../pages/AccountPage';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,6 +15,7 @@ const DashboardSidebar = ({ activeView, setActiveView }: DashboardSidebarProps) 
   const navItems = [
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'orders', label: 'Order History', icon: Package },
+    { id: 'addresses', label: 'My Addresses', icon: MapPin },
   ];
 
   if (isAdmin) {

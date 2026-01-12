@@ -218,3 +218,79 @@ class UpdateProductIn(BaseModel):
 
 class UpdateProductOut(BaseModel):
     product: ProductSchema
+
+
+"""
+---------------------------------------
+-------- Multi-Step Product Creation --------
+---------------------------------------
+"""
+
+
+class VariantMediaIn(BaseModel):
+    """Schema for variant-specific images"""
+    src: str
+    cloudinary_id: str
+    alt: str | None = None
+    type: str = "image"
+
+
+class VariantIn(BaseModel):
+    """Schema for creating a variant with options and images"""
+    price: float
+    stock: int
+    option1: str | None = None  # e.g., "Red"
+    option2: str | None = None  # e.g., "Large"
+    option3: str | None = None  # e.g., "Cotton"
+    images: list[VariantMediaIn] | None = None
+
+    @field_validator('price')
+    def validate_price(cls, price):
+        if price < 0:
+            raise ValueError('Price must be a positive number.')
+        return price
+
+    @field_validator('stock')
+    def validate_stock(cls, stock):
+        if stock < 0:
+            raise ValueError('Stock must be a positive number.')
+        return stock
+
+
+class CreateProductWithVariantsIn(BaseModel):
+    """Comprehensive schema for multi-step product creation"""
+    product_name: Annotated[str, Query(max_length=255, min_length=1)]
+    description: str | None = None
+    status: str = "draft"  # draft, active, archived
+    
+    # Product-level options (Color, Size, Material, etc.)
+    options: list[OptionIn] | None = None
+    
+    # Variants with their specific values, price, stock, and images
+    variants: list[VariantIn] | None = None
+    
+    # Product-level images (not variant-specific)
+    product_images: list[VariantMediaIn] | None = None
+
+    class Config:
+        from_attributes = True
+
+    @model_validator(mode='before')
+    def validate_variants_match_options(cls, values):
+        options = values.get("options", [])
+        variants = values.get("variants", [])
+        
+        if not options and not variants:
+            # Simple product without variants is OK
+            return values
+        
+        if options and len(options) > 3:
+            raise ValueError('The number of options cannot exceed 3.')
+        
+        # Check for duplicate option names
+        if options:
+            option_names = [opt.get("option_name") if isinstance(opt, dict) else opt.option_name for opt in options]
+            if len(option_names) != len(set(option_names)):
+                raise ValueError('Duplicate option names found.')
+        
+        return values

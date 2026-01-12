@@ -21,6 +21,7 @@ app.add_middleware(
         "https://sp-aroma.netlify.app",
         "https://sp-aroma.com",
         "http://localhost:5173",          # local dev
+        "http://127.0.0.1:5173",          # local dev (IP)
     ],
     allow_credentials=True,
     allow_methods=["*"],

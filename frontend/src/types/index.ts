@@ -69,6 +69,7 @@ export interface User {
   first_name?: string;
   last_name?: string;
   is_superuser?: boolean;
+  is_admin?: boolean; // Alias for is_superuser
   is_verified_email?: boolean;
   date_joined?: string;
   last_login?: string;

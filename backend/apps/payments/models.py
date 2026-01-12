@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from config.database import FastModel
 
@@ -14,3 +15,6 @@ class Payment(FastModel):
     status = Column(String, default="created")
 
     created_at = Column(DateTime, server_default=func.now())
+    
+    # Relationships
+    order = relationship("Order", back_populates="payments")
