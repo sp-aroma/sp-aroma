@@ -11,6 +11,11 @@ interface ProductShowcaseProps {
 }
 
 const ProductShowcase = ({ title, description, products, id }: ProductShowcaseProps) => {
+  // Don't render section if no products
+  if (!products || products.length === 0) {
+    return null;
+  }
+
   return (
     <section id={id} className="py-16 sm:py-24 border-t border-gray-100 first:border-t-0">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">

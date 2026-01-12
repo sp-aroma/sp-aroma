@@ -20,6 +20,8 @@ app.add_middleware(
     allow_origins=[
         "https://sp-aroma.pages.dev",
         "https://sp-aroma.com",
+        "https://www.sp-aroma.com",
+        "https://sp-aroma.onrender.com",  # Backend itself for testing
         "http://localhost:5173",          # local dev
         "http://127.0.0.1:5173",          # local dev (IP)
     ],
