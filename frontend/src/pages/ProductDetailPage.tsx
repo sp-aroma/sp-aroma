@@ -5,6 +5,7 @@ import { Plus, Minus, ChevronRight, Check, ShoppingBag, Heart, Share2, Package, 
 import { cn } from '../lib/utils';
 import ProductCard from '../components/ProductCard';
 import { useCart } from '../contexts/CartContext';
+import { useToast } from '../contexts/ToastContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProductVariant {
@@ -28,6 +29,7 @@ const ProductDetailPage = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const { addToCart } = useCart();
+  const { error: showError, success: showSuccess } = useToast();
 
   const [product, setProduct] = useState<any | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
@@ -135,13 +137,18 @@ const ProductDetailPage = () => {
 
   const handleAddToCart = async () => {
     if (product && selectedVariant) {
-      const cartProduct = {
-        ...product,
-        price: `₹${selectedVariant.price}`,
-        variantId: selectedVariant.variant_id,
-      };
-      await addToCart(cartProduct, quantity);
-      setIsAdded(true);
+      try {
+        const cartProduct = {
+          ...product,
+          price: `₹${selectedVariant.price}`,
+          variantId: selectedVariant.variant_id,
+        };
+        await addToCart(cartProduct, quantity);
+        setIsAdded(true);
+        showSuccess(`Added ${quantity} item(s) to cart!`);
+      } catch (err: any) {
+        showError(err.message || 'Failed to add to cart');
+      }
     }
   };
 

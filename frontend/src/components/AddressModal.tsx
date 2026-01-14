@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Address } from '../types';
 import { apiGetAddresses, apiCreateAddress } from '../lib/api';
+import { useToast } from '../contexts/ToastContext';
 
 interface AddressModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface AddressModalProps {
 }
 
 const AddressModal = ({ isOpen, onClose, onSelectAddress }: AddressModalProps) => {
+  const { error: showError } = useToast();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -60,7 +62,7 @@ const AddressModal = ({ isOpen, onClose, onSelectAddress }: AddressModalProps) =
       await loadAddresses();
     } catch (err: any) {
       console.error('Failed to create address', err);
-      alert('Failed to add address: ' + (err?.body?.detail || err?.message || 'Unknown error'));
+      showError('Failed to add address: ' + (err?.body?.detail || err?.message || 'Unknown error'));
     }
   };
 

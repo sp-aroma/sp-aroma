@@ -1,7 +1,13 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Product, CartItem } from '../types';
 import { useAuth } from './AuthContext';
-import { apiGetCart, apiAddToCart, apiUpdateCartItem, apiDeleteCartItem } from '../lib/api';
+import { 
+  apiGetCart, 
+  apiAddToCart, 
+  apiUpdateCartItem, 
+  apiDeleteCartItem, 
+  apiVerifyProductData 
+} from '../lib/api';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -84,6 +90,33 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const addToCart = async (product: Product, quantity: number) => {
+    // CRITICAL: Always verify price and stock from backend before adding to cart
+    try {
+      const variantId = (product as any).variantId;
+      const verification = await apiVerifyProductData(product.id, variantId);
+      
+      // Check if product is available
+      if (!verification.available) {
+        throw new Error('Product is out of stock');
+      }
+      
+      // Check if enough stock is available
+      if (verification.stock < quantity) {
+        throw new Error(`Only ${verification.stock} items available in stock`);
+      }
+      
+      // Optionally: Check if price has changed (uncomment if needed)
+      // const expectedPrice = parseFloat(product.price.replace('₹', ''));
+      // if (Math.abs(verification.price - expectedPrice) > 0.01) {
+      //   console.warn('Price has changed!', { expected: expectedPrice, actual: verification.price });
+      // }
+      
+    } catch (err: any) {
+      console.error('Product verification failed:', err);
+      // Toast will be shown by the component
+      throw err;
+    }
+
     if (user) {
       // Add to backend cart
       try {

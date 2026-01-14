@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
 import { apiGetProducts, apiCreateProduct, apiUpdateProduct, apiDeleteProduct } from '../../lib/api';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmDialogContext';
 
 const emptyNew = { product_name: '', description: '', status: '', price: '' };
 
 const AdminProductsSection = () => {
+  const { success: showSuccess, error: showError } = useToast();
+  const { confirm } = useConfirm();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -37,24 +41,29 @@ const AdminProductsSection = () => {
       setNewProd(emptyNew);
       setCreating(false);
       await load();
-      alert('Product created successfully!');
+      showSuccess('Product created successfully!');
     } catch (err: any) {
       console.error(err);
       const errorMsg = err?.body?.detail || err?.message || 'Failed to create product';
-      alert('Error: ' + errorMsg);
+      showError('Error: ' + errorMsg);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this product?')) return;
+    const confirmed = await confirm({
+      message: 'Delete this product?',
+      confirmText: 'Delete',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
     try {
       await apiDeleteProduct(id);
       await load();
-      alert('Product deleted');
+      showSuccess('Product deleted');
     } catch (err: any) {
       console.error(err);
       const errorMsg = err?.body?.detail || err?.message || 'Failed to delete product';
-      alert('Error: ' + errorMsg);
+      showError('Error: ' + errorMsg);
     }
   };
 
@@ -62,11 +71,11 @@ const AdminProductsSection = () => {
     try {
       await apiUpdateProduct(id, updates);
       await load();
-      alert('Product updated');
+      showSuccess('Product updated');
     } catch (err: any) {
       console.error(err);
       const errorMsg = err?.body?.detail || err?.message || 'Failed to update product';
-      alert('Error: ' + errorMsg);
+      showError('Error: ' + errorMsg);
     }
   };
 

@@ -2,6 +2,11 @@
 // API CONFIG
 // ===============================
 
+import { ProductCache, UserCache, invalidateCache, verifyCriticalData } from './cache';
+
+// Export cache utilities for components
+export { ProductCache, UserCache, invalidateCache, verifyCriticalData };
+
 // In dev: Vite proxy → relative paths
 // In prod: absolute backend URL
 export const API_BASE = import.meta.env.VITE_API_BASE ?? '';
@@ -164,7 +169,12 @@ export const apiVerifyRegistration = (email: string, otp: string) =>
 export const apiLogin = (username: string, password: string) =>
   postForm('/accounts/login', { username, password });
 
-export const apiLogout = () => postJson('/accounts/logout', {});
+export const apiLogout = async () => {
+  const response = await postJson('/accounts/logout', {});
+  // Clear all cached data on logout
+  await invalidateCache('all');
+  return response;
+};
 
 export const apiResetPassword = (email: string) =>
   postJson('/accounts/reset-password', { email });
@@ -188,7 +198,25 @@ export const apiResendOTP = (email: string, request_type: string) =>
 // ===============================
 // USER API
 // ===============================
-export const apiGetCurrentUser = () => getJson('/accounts/me');
+export const apiGetCurrentUser = async () => {
+  // Try to get from cache first
+  const cached = await UserCache.get();
+  if (cached) {
+    console.log('📦 Using cached user');
+    return { user: cached };
+  }
+
+  // Cache miss or expired - fetch from API
+  console.log('🌐 Fetching user from API');
+  const response = await getJson('/accounts/me');
+  
+  // Store in cache for future use
+  if (response?.user) {
+    await UserCache.set(response.user);
+  }
+  
+  return response;
+};
 
 export const apiUpdateCurrentUser = (data: any) =>
   putJson('/accounts/me', data);
@@ -219,10 +247,43 @@ export const apiDeleteAccount = () =>
 // ===============================
 // PRODUCTS API (PUBLIC)
 // ===============================
-export const apiGetProducts = () => getJsonPublic('/products/');
+export const apiGetProducts = async () => {
+  // Try to get from cache first
+  const cached = await ProductCache.get();
+  if (cached && !ProductCache.isExpired()) {
+    console.log('📦 Using cached products');
+    return { products: cached };
+  }
 
-export const apiGetProduct = (productId: number | string) =>
-  getJsonPublic(`/products/${productId}`);
+  // Cache miss or expired - fetch from API
+  console.log('🌐 Fetching products from API');
+  const response = await getJsonPublic('/products/');
+  
+  // Store in cache for future use
+  if (response?.products) {
+    await ProductCache.set(response.products);
+  }
+  
+  return response;
+};
+
+export const apiGetProduct = async (productId: number | string) => {
+  // Try to get from cache first
+  const cached = await ProductCache.getById(Number(productId));
+  if (cached) {
+    console.log(`📦 Using cached product ${productId}`);
+    return { product: cached };
+  }
+
+  // Cache miss - fetch from API
+  console.log(`🌐 Fetching product ${productId} from API`);
+  const response = await getJsonPublic(`/products/${productId}`);
+  
+  // Note: Individual product fetches don't update cache
+  // Cache is only updated by apiGetProducts() to maintain consistency
+  
+  return response;
+};
 
 export const apiCreateProduct = (data: any) =>
   postJson('/products/', data);
@@ -272,6 +333,43 @@ export const apiUpdateVariant = (variantId: number, data: any) =>
 export const apiGetProductVariants = (productId: number) =>
   getJson(`/products/${productId}/variants`);
 
+// Helper: Verify critical product data (price, stock) before cart operations
+export const apiVerifyProductData = async (productId: number, variantId?: number) => {
+  console.log(`🔍 Verifying product data for product ${productId}`);
+  
+  // Always fetch fresh data from backend for critical operations
+  const response = await getJsonPublic(`/products/${productId}`);
+  const product = response?.product;
+  
+  if (!product) {
+    throw new Error('Product not found');
+  }
+  
+  // If variant specified, find the variant's data
+  if (variantId && product.variants) {
+    const variant = product.variants.find((v: any) => v.id === variantId);
+    if (!variant) {
+      throw new Error('Variant not found');
+    }
+    
+    return {
+      available: variant.stock_quantity > 0,
+      price: variant.price,
+      stock: variant.stock_quantity,
+      product: product,
+      variant: variant
+    };
+  }
+  
+  // Default product data
+  return {
+    available: product.stock_quantity > 0,
+    price: product.price,
+    stock: product.stock_quantity,
+    product: product
+  };
+};
+
 // ===============================
 // ADDRESSES API
 // ===============================
@@ -303,8 +401,17 @@ export const apiUpdateCartItem = (itemId: number, quantity: number) =>
 export const apiDeleteCartItem = (itemId: number) =>
   deleteJson(`/cart/item/${itemId}`);
 
-export const apiCheckout = (addressId: number) =>
-  postJson(`/cart/checkout?address_id=${addressId}`, {});
+export const apiCheckout = async (addressId: number) => {
+  const response = await postJson(`/cart/checkout?address_id=${addressId}`, {});
+  
+  // After successful checkout, invalidate product cache since stock has changed
+  if (response?.order || response?.success) {
+    console.log('✅ Order placed - invalidating product cache');
+    await invalidateCache('products');
+  }
+  
+  return response;
+};
 
 // ===============================
 // ORDERS API

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { apiGetAllOrders, apiAdminUpdateOrderStatus } from '../../lib/api';
 import { Search, Eye } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmDialogContext';
 import OrderDetailsModal from '../OrderDetailsModal';
 import { Pagination } from '../Pagination';
 
@@ -21,6 +23,8 @@ const ORDER_STATUSES = [
 const ITEMS_PER_PAGE = 10;
 
 const OrderManagement = () => {
+  const { error: showError } = useToast();
+  const { confirm } = useConfirm();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,14 +49,19 @@ const OrderManagement = () => {
   };
 
   const handleStatusChange = async (orderId: number, newStatus: string) => {
-    if (!confirm(`Change order #${orderId} status to ${newStatus}?`)) return;
+    const confirmed = await confirm({
+      message: `Change order #${orderId} status to ${newStatus}?`,
+      confirmText: 'Change Status',
+      variant: 'info'
+    });
+    if (!confirmed) return;
     
     try {
       await apiAdminUpdateOrderStatus(orderId, newStatus);
       await loadOrders();
     } catch (err: any) {
       console.error('Failed to update status', err);
-      alert('Error: ' + (err?.body?.detail || 'Failed to update order status'));
+      showError('Error: ' + (err?.body?.detail || 'Failed to update order status'));
     }
   };
 

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
+import { useToast } from '../contexts/ToastContext';
 import { apiCheckout, apiGetAddress } from '../lib/api';
 import { CreditCard, Lock, CheckCircle, Package } from 'lucide-react';
 
@@ -11,6 +12,7 @@ const CheckoutPage = () => {
   const location = useLocation();
   const { user } = useAuth();
   const { cartItems, cartTotal, cartCount, clearCart } = useCart();
+  const { error: showError } = useToast();
   
   const [addressId, setAddressId] = useState<number | null>(null);
   const [address, setAddress] = useState<any>(null);
@@ -22,7 +24,7 @@ const CheckoutPage = () => {
     // Get address ID from navigation state
     const selectedAddressId = location.state?.addressId;
     if (!selectedAddressId) {
-      alert('Please select a delivery address');
+      showError('Please select a delivery address');
       navigate('/cart');
       return;
     }
@@ -42,7 +44,7 @@ const CheckoutPage = () => {
       setAddress(addr);
     } catch (err) {
       console.error('Failed to load address', err);
-      alert('Failed to load delivery address');
+      showError('Failed to load delivery address');
       navigate('/cart');
     }
   };
@@ -67,7 +69,7 @@ const CheckoutPage = () => {
     } catch (err: any) {
       console.error('Checkout failed', err);
       const errorMsg = err?.body?.detail || err?.message || 'Payment failed. Please try again.';
-      alert('Payment error: ' + errorMsg);
+      showError('Payment error: ' + errorMsg);
     } finally {
       setIsProcessing(false);
     }

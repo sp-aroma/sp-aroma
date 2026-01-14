@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Check, X, Eye, Upload, Trash2 } from 'lucide-react';
 import { apiCreateProductComprehensive, apiUploadImageTemp } from '../../lib/api';
+import { useToast } from '../../contexts/ToastContext';
 
 interface Option {
   option_name: string;
@@ -40,6 +41,7 @@ interface CreateProductWizardProps {
 }
 
 const CreateProductWizard = ({ onClose, onSuccess }: CreateProductWizardProps) => {
+  const { success: showSuccess, error: showError } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<ProductFormData>({
@@ -169,7 +171,7 @@ const CreateProductWizard = ({ onClose, onSuccess }: CreateProductWizardProps) =
       }
     } catch (err) {
       console.error('Image upload failed:', err);
-      alert('Failed to upload image. Please try again.');
+      showError('Failed to upload image. Please try again.');
     }
   };
 
@@ -191,12 +193,12 @@ const CreateProductWizard = ({ onClose, onSuccess }: CreateProductWizardProps) =
     try {
       // All images are already uploaded to Cloudinary, just submit the data
       await apiCreateProductComprehensive(formData);
-      alert('Product created successfully!');
+      showSuccess('Product created successfully!');
       onSuccess();
       onClose();
     } catch (err: any) {
       console.error('Failed to create product:', err);
-      alert('Error: ' + (err?.body?.detail || 'Failed to create product'));
+      showError('Error: ' + (err?.body?.detail || 'Failed to create product'));
     } finally {
       setLoading(false);
     }

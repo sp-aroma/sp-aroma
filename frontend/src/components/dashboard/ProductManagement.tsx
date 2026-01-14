@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { apiGetProducts, apiCreateProduct, apiUpdateProduct, apiDeleteProduct, apiUploadProductImages, apiDeleteProductImage } from '../../lib/api';
 import { Search, Plus, Edit2, Trash2, X, Save, Upload, Image as ImageIcon } from 'lucide-react';
 import CreateProductWizard from './CreateProductWizard';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmDialogContext';
 
 interface Product {
   product_id: number;
@@ -15,6 +17,8 @@ interface Product {
 }
 
 const ProductManagement = () => {
+  const { success: showSuccess, error: showError } = useToast();
+  const { confirm } = useConfirm();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -96,7 +100,7 @@ const ProductManagement = () => {
       setShowModal(false);
       await loadProducts();
     } catch (err: any) {
-      alert('Error: ' + (err?.body?.detail || 'Failed to save product'));
+      showError('Error: ' + (err?.body?.detail || 'Failed to save product'));
     }
   };
 
@@ -107,33 +111,43 @@ const ProductManagement = () => {
     try {
       await apiUploadProductImages(productId, files);
       await loadProducts();
-      alert('Images uploaded successfully!');
+      showSuccess('Images uploaded successfully!');
     } catch (err: any) {
-      alert('Error uploading images: ' + (err?.body?.detail || 'Failed to upload'));
+      showError('Error uploading images: ' + (err?.body?.detail || 'Failed to upload'));
     } finally {
       setUploadingImages(false);
     }
   };
 
   const handleDeleteImage = async (productId: number, mediaId: number) => {
-    if (!confirm('Delete this image?')) return;
+    const confirmed = await confirm({
+      message: 'Delete this image?',
+      confirmText: 'Delete',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       await apiDeleteProductImage(productId, mediaId.toString());
       await loadProducts();
     } catch (err: any) {
-      alert('Error deleting image: ' + (err?.body?.detail || 'Failed to delete'));
+      showError('Error deleting image: ' + (err?.body?.detail || 'Failed to delete'));
     }
   };
 
   const handleDelete = async (productId: number) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    const confirmed = await confirm({
+      message: 'Are you sure you want to delete this product?',
+      confirmText: 'Delete',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
       await apiDeleteProduct(productId);
       await loadProducts();
     } catch (err: any) {
-      alert('Error: ' + (err?.body?.detail || 'Failed to delete product'));
+      showError('Error: ' + (err?.body?.detail || 'Failed to delete product'));
     }
   };
 

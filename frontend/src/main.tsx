@@ -5,6 +5,8 @@ import App from './App.tsx'
 import './index.css'
 import { CartProvider } from './contexts/CartContext.tsx'
 import { AuthProvider } from './contexts/AuthContext'
+import { ToastProvider } from './contexts/ToastContext'
+import { ConfirmDialogProvider } from './contexts/ConfirmDialogContext'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -14,11 +16,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         v7_relativeSplatPath: true,
       }}
     >
-      <AuthProvider>
-        <CartProvider>
-          <App />
-        </CartProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <ConfirmDialogProvider>
+          <AuthProvider>
+            <CartProvider>
+              <App />
+            </CartProvider>
+          </AuthProvider>
+        </ConfirmDialogProvider>
+      </ToastProvider>
     </BrowserRouter>
   </React.StrictMode>,
 )

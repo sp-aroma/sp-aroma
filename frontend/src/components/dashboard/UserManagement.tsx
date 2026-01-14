@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { apiGetAllUsers, apiUpdateUser, apiDeleteUser } from '../../lib/api';
 import { Search, Edit, Trash2, Check, X, UserCheck, UserX, Shield } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
+import { useConfirm } from '../../contexts/ConfirmDialogContext';
 import { Pagination } from '../Pagination';
 
 interface User {
@@ -18,6 +20,8 @@ interface User {
 const ITEMS_PER_PAGE = 10;
 
 const UserManagement = () => {
+  const { error: showError } = useToast();
+  const { confirm } = useConfirm();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,18 +63,23 @@ const UserManagement = () => {
       setEditForm({});
     } catch (err: any) {
       console.error('Failed to update user', err);
-      alert('Error: ' + (err?.body?.detail || 'Failed to update user'));
+      showError('Error: ' + (err?.body?.detail || 'Failed to update user'));
     }
   };
 
   const handleDelete = async (userId: number, email: string) => {
-    if (!confirm(`Delete user ${email}? This action cannot be undone.`)) return;
+    const confirmed = await confirm({
+      message: `Delete user ${email}? This action cannot be undone.`,
+      confirmText: 'Delete User',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
     try {
       await apiDeleteUser(userId);
       await loadUsers();
     } catch (err: any) {
       console.error('Failed to delete user', err);
-      alert('Error: ' + (err?.body?.detail || 'Failed to delete user'));
+      showError('Error: ' + (err?.body?.detail || 'Failed to delete user'));
     }
   };
 

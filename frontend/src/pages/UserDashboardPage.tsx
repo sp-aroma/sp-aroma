@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { useConfirm } from '../contexts/ConfirmDialogContext';
 import { apiGetCurrentUser, apiGetOrders, apiUpdateCurrentUser, apiDeleteAccount, apiGetAddresses, apiCreateAddress, apiUpdateAddress, apiDeleteAddress } from '../lib/api';
 import OrderDetailsModal from '../components/OrderDetailsModal';
 import { User, Package, MapPin, ShieldCheck, Edit2, Eye, Trash2, Save, X, Plus } from 'lucide-react';
@@ -22,6 +24,8 @@ const ORDER_STATUSES = [
 
 const UserDashboardPage = () => {
   const { user, logout } = useAuth();
+  const { success: showSuccess, error: showError } = useToast();
+  const { confirm } = useConfirm();
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'addresses'>('profile');
@@ -105,10 +109,10 @@ const UserDashboardPage = () => {
       await apiUpdateCurrentUser(editForm);
       await loadData();
       setIsEditingProfile(false);
-      alert('Profile updated successfully!');
+      showSuccess('Profile updated successfully!');
     } catch (err) {
       console.error('Failed to update profile', err);
-      alert('Failed to update profile. Please try again.');
+      showError('Failed to update profile. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -122,12 +126,12 @@ const UserDashboardPage = () => {
 
     try {
       await apiDeleteAccount();
-      alert('Account deleted successfully');
+      showSuccess('Account deleted successfully');
       logout();
       navigate('/');
     } catch (err) {
       console.error('Failed to delete account', err);
-      alert('Failed to delete account. Please try again.');
+      showError('Failed to delete account. Please try again.');
     }
   };
 
@@ -191,26 +195,31 @@ const UserDashboardPage = () => {
       const addressesRes = await apiGetAddresses();
       setAddresses(addressesRes?.addresses || []);
       handleCancelAddressEdit();
-      alert(editingAddressId ? 'Address updated successfully!' : 'Address added successfully!');
+      showSuccess(editingAddressId ? 'Address updated successfully!' : 'Address added successfully!');
     } catch (err) {
       console.error('Failed to save address', err);
-      alert('Failed to save address. Please try again.');
+      showError('Failed to save address. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteAddress = async (addressId: number) => {
-    if (!confirm('Are you sure you want to delete this address?')) return;
+    const confirmed = await confirm({ 
+      message: 'Are you sure you want to delete this address?',
+      confirmText: 'Delete',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
     
     try {
       await apiDeleteAddress(addressId);
       const addressesRes = await apiGetAddresses();
       setAddresses(addressesRes?.addresses || []);
-      alert('Address deleted successfully!');
+      showSuccess('Address deleted successfully!');
     } catch (err) {
       console.error('Failed to delete address', err);
-      alert('Failed to delete address. Please try again.');
+      showError('Failed to delete address. Please try again.');
     }
   };
 

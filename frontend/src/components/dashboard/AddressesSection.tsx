@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit, Check, X } from 'lucide-react';
 import { Address } from '../../types';
+import { useConfirm } from '../../contexts/ConfirmDialogContext';
 import { apiGetAddresses, apiCreateAddress, apiUpdateAddress, apiDeleteAddress } from '../../lib/api';
 import { Pagination } from '../Pagination';
 
 const ITEMS_PER_PAGE = 6;
 
 const AddressesSection = () => {
+  const { confirm } = useConfirm();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -90,7 +92,12 @@ const AddressesSection = () => {
   };
 
   const handleDelete = async (addressId: number) => {
-    if (!confirm('Are you sure you want to delete this address?')) return;
+    const confirmed = await confirm({
+      message: 'Are you sure you want to delete this address?',
+      confirmText: 'Delete',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
     try {
       await apiDeleteAddress(addressId);
       await loadAddresses();
