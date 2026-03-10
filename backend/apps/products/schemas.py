@@ -18,6 +18,10 @@ class VariantSchema(BaseModel):
     option1: int | None
     option2: int | None
     option3: int | None
+    option1_name: str | None = None
+    option2_name: str | None = None
+    option3_name: str | None = None
+    title: str | None = None
     created_at: str
     updated_at: str | None
 

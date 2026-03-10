@@ -223,15 +223,32 @@ class ProductService:
 
         cls.variants = cls.retrieve_variants(cls.product.id)
 
+    @staticmethod
+    def _resolve_option_item_name(item_id: int | None) -> str | None:
+        """Resolve a ProductOptionItem ID to its item_name string."""
+        if item_id is None:
+            return None
+        item = ProductOptionItem.filter(ProductOptionItem.id == item_id).first()
+        return item.item_name if item else None
+
+    @staticmethod
+    def _build_variant_title(option1_name, option2_name, option3_name) -> str:
+        """Build a human-readable variant title like '50 ml / 100 ml'."""
+        parts = [o for o in [option1_name, option2_name, option3_name] if o]
+        return " / ".join(parts) if parts else "Default"
+
     @classmethod
     def retrieve_variants(cls, product_id):
         """
-        Get all variants of a product
+        Get all variants of a product with resolved option names.
         """
-
         product_variants = []
         variants: list[ProductVariant] = ProductVariant.filter(ProductVariant.product_id == product_id).all()
         for variant in variants:
+            option1_name = cls._resolve_option_item_name(variant.option1)
+            option2_name = cls._resolve_option_item_name(variant.option2)
+            option3_name = cls._resolve_option_item_name(variant.option3)
+
             product_variants.append(
                 {
                     "variant_id": variant.id,
@@ -241,6 +258,10 @@ class ProductService:
                     "option1": variant.option1,
                     "option2": variant.option2,
                     "option3": variant.option3,
+                    "option1_name": option1_name,
+                    "option2_name": option2_name,
+                    "option3_name": option3_name,
+                    "title": cls._build_variant_title(option1_name, option2_name, option3_name),
                     "created_at": DateTime.string(variant.created_at),
                     "updated_at": DateTime.string(variant.updated_at)
                 })
@@ -249,9 +270,13 @@ class ProductService:
             return product_variants
         return None
 
-    @staticmethod
-    def retrieve_variant(variant_id: int):
+    @classmethod
+    def retrieve_variant(cls, variant_id: int):
         variant = ProductVariant.get_or_404(variant_id)
+        option1_name = cls._resolve_option_item_name(variant.option1)
+        option2_name = cls._resolve_option_item_name(variant.option2)
+        option3_name = cls._resolve_option_item_name(variant.option3)
+
         variant_data = {
             "variant_id": variant.id,
             "product_id": variant.product_id,
@@ -260,6 +285,10 @@ class ProductService:
             "option1": variant.option1,
             "option2": variant.option2,
             "option3": variant.option3,
+            "option1_name": option1_name,
+            "option2_name": option2_name,
+            "option3_name": option3_name,
+            "title": cls._build_variant_title(option1_name, option2_name, option3_name),
             "created_at": DateTime.string(variant.created_at),
             "updated_at": DateTime.string(variant.updated_at)
         }
@@ -373,15 +402,37 @@ class ProductService:
                         ]
                     })
 
+                # Build option item ID -> name lookup map for this product
+                option_item_map = {}
+                for option in product.options:
+                    for item in option.option_items:
+                        option_item_map[item.id] = item.item_name
+
+                # def resolve_name(item_id):
+                #     return option_item_map.get(item_id) if item_id else None
+
+                # def build_title(o1, o2, o3):
+                #     parts = [o for o in [o1, o2, o3] if o]
+                #     return " / ".join(parts) if parts else "Default"
+
                 # Serialize variants
                 variants_list = []
                 for variant in product.variants:
+                    o1_name = option_item_map.get(variant.option1) if variant.option1 else None
+                    o2_name = option_item_map.get(variant.option2) if variant.option2 else None
+                    o3_name = option_item_map.get(variant.option3) if variant.option3 else None
+                    _parts = [o for o in [o1_name, o2_name, o3_name] if o]
+                    _title = " / ".join(_parts) if _parts else "Default"
                     variants_list.append({
                         'variant_id': variant.id,
-                        'product_id': product.id,  # ✅ Fixed: added missing field
+                        'product_id': product.id,
                         'option1': variant.option1,
                         'option2': variant.option2,
                         'option3': variant.option3,
+                        'option1_name': o1_name,
+                        'option2_name': o2_name,
+                        'option3_name': o3_name,
+                        'title': _title,
                         'price': float(variant.price),
                         'stock': variant.stock,
                         'created_at': DateTime.string(variant.created_at),

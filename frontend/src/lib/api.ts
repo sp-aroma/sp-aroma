@@ -347,15 +347,15 @@ export const apiVerifyProductData = async (productId: number, variantId?: number
   
   // If variant specified, find the variant's data
   if (variantId && product.variants) {
-    const variant = product.variants.find((v: any) => v.id === variantId);
+    const variant = product.variants.find((v: any) => v.variant_id === variantId);
     if (!variant) {
       throw new Error('Variant not found');
     }
     
     return {
-      available: variant.stock_quantity > 0,
+      available: variant.stock > 0,
       price: variant.price,
-      stock: variant.stock_quantity,
+      stock: variant.stock,
       product: product,
       variant: variant
     };
@@ -363,9 +363,9 @@ export const apiVerifyProductData = async (productId: number, variantId?: number
   
   // Default product data
   return {
-    available: product.stock_quantity > 0,
-    price: product.price,
-    stock: product.stock_quantity,
+    available: (product.variants?.[0]?.stock ?? 0) > 0,
+    price: product.variants?.[0]?.price ?? product.price ?? 0,
+    stock: product.variants?.[0]?.stock ?? 0,
     product: product
   };
 };

@@ -18,8 +18,16 @@ interface ProductVariant {
   option1_name?: string;
   option2_name?: string;
   option3_name?: string;
+  title?: string;
   images?: string[];
 }
+
+// Helper to get a human-readable variant label
+const getVariantLabel = (variant: ProductVariant): string => {
+  if (variant.title) return variant.title;
+  const parts = [variant.option1_name, variant.option2_name, variant.option3_name].filter(Boolean);
+  return parts.length > 0 ? parts.join(' / ') : `Variant ${variant.variant_id}`;
+};
 
 const ProductDetailPage = () => {
   const { productId } = useParams();
@@ -142,6 +150,7 @@ const ProductDetailPage = () => {
           ...product,
           price: `₹${selectedVariant.price}`,
           variantId: selectedVariant.variant_id,
+          variantName: getVariantLabel(selectedVariant),
         };
         await addToCart(cartProduct, quantity);
         setIsAdded(true);
@@ -247,7 +256,7 @@ const ProductDetailPage = () => {
               {selectedVariant && product.variants.length > 1 && (
                 <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg">
                   <span className="text-xs font-jost uppercase tracking-widest text-heading">
-                    {selectedVariant.option1_name || 'Variant'}
+                    {getVariantLabel(selectedVariant)}
                   </span>
                 </div>
               )}
@@ -346,7 +355,7 @@ const ProductDetailPage = () => {
                     >
                       <div className="flex flex-col gap-1">
                         <span className="text-sm font-medium text-heading">
-                          {variant.option1_name || `Variant ${variant.variant_id}`}
+                          {getVariantLabel(variant)}
                         </span>
                         <span className="text-xs text-foreground">₹{variant.price}</span>
                         {variant.images && variant.images.length > 0 && (

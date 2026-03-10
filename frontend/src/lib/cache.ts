@@ -2,7 +2,7 @@
 // Includes data integrity checks and automatic cache invalidation
 
 const DB_NAME = 'sp_aroma_cache';
-const DB_VERSION = 2;
+const DB_VERSION = 3; // bumped to force DB rebuild
 const PRODUCTS_STORE = 'products';
 const CART_STORE = 'cart';
 const ORDERS_STORE = 'orders';
@@ -40,7 +40,7 @@ const initDB = (): Promise<IDBDatabase> => {
       
       // Create products store if it doesn't exist
       if (!db.objectStoreNames.contains(PRODUCTS_STORE)) {
-        const store = db.createObjectStore(PRODUCTS_STORE, { keyPath: 'id' });
+        const store = db.createObjectStore(PRODUCTS_STORE, { keyPath: 'product_id' });
         store.createIndex('timestamp', 'timestamp', { unique: false });
         store.createIndex('category', 'category', { unique: false });
       }
