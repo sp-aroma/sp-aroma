@@ -21,6 +21,9 @@ class AppConfig:
         resend_api_key: str | None = None
         resend_from_email: str | None = None
         project_name: str | None = None
+        PAYMENT_MODE: str = "razorpay"
+        RAZORPAY_KEY_ID: str | None = None
+        RAZORPAY_KEY_SECRET: str | None = None
 
     config = _AppConfig(
         app_name=os.getenv("APP_NAME"),
@@ -28,11 +31,12 @@ class AppConfig:
         access_token_expire_minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES") or 30),
         otp_secret_key=os.getenv("OTP_SECRET_KEY"),
         otp_expire_seconds=int(os.getenv("OTP_EXPIRE_SECONDS") or 360),
-
-        # --- Resend fields loaded from .env ---
         resend_api_key=os.getenv("RESEND_API_KEY"),
         resend_from_email=os.getenv("RESEND_FROM_EMAIL"),
         project_name=os.getenv("PROJECT_NAME", "SP Aroma"),
+        PAYMENT_MODE=os.getenv("PAYMENT_MODE", "razorpay"),
+        RAZORPAY_KEY_ID=os.getenv("RAZORPAY_KEY_ID"),
+        RAZORPAY_KEY_SECRET=os.getenv("RAZORPAY_KEY_SECRET"),
     )
 
 
@@ -91,8 +95,8 @@ MAX_FILE_SIZE = 5
 products_list_limit = 12
 
 
-PAYMENT_MODE: str = "mock"  
+PAYMENT_MODE: str = os.getenv("PAYMENT_MODE", "razorpay")
 # values: "mock" | "razorpay"
 
-RAZORPAY_KEY_ID: str | None = None
-RAZORPAY_KEY_SECRET: str | None = None
+RAZORPAY_KEY_ID: str | None = os.getenv("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET: str | None = os.getenv("RAZORPAY_KEY_SECRET")

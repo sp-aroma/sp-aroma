@@ -612,3 +612,15 @@ export const formatIST = (dateStr: string): string => {
     hour12: true,
   });
 };
+
+export async function apiVerifyPayment(data: any) {
+  const res = await fetch(`${API_BASE}/verify-payment`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+
+  return res.json();
+}

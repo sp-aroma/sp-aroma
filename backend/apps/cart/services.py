@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 
 from config.database import SessionLocal
+from config.settings import AppConfig
 from apps.cart.models import Cart, CartItem
 from apps.products.models import Product, ProductVariant
 from apps.orders.services import OrderService
@@ -13,10 +14,6 @@ class CartService:
     """
     Cart persistence + checkout
     """
-
-    # ------------------------
-    # Helpers
-    # ------------------------
 
     @staticmethod
     def _get_or_create_cart(session: Session, user_id: int) -> Cart:
@@ -55,10 +52,6 @@ class CartService:
             "total_amount": total,
             "currency": "INR",
         }
-
-    # ------------------------
-    # APIs
-    # ------------------------
 
     @classmethod
     def add_item(cls, user_id: int, payload: dict):
@@ -100,23 +93,19 @@ class CartService:
 
             session.commit()
             session.refresh(cart)
-
             return cls._serialize_cart(cart)
-
         finally:
             session.close()
 
     @classmethod
     def get_cart(cls, user_id: int):
-        """Optimized get_cart with eager loading to prevent N+1 queries"""
         session = SessionLocal()
         try:
-            # Eager load cart items with product and variant in single query
             cart = session.query(Cart).options(
                 joinedload(Cart.items).joinedload(CartItem.product),
                 joinedload(Cart.items).joinedload(CartItem.variant)
             ).filter_by(user_id=user_id).first()
-            
+
             if not cart:
                 return {"items": [], "total_amount": 0, "currency": "INR"}
             return cls._serialize_cart(cart)
@@ -137,7 +126,6 @@ class CartService:
             item.quantity = quantity
             session.commit()
             session.refresh(item.cart)
-
             return cls._serialize_cart(item.cart)
         finally:
             session.close()
@@ -154,56 +142,84 @@ class CartService:
             session.delete(item)
             session.commit()
             session.refresh(cart)
-
             return cls._serialize_cart(cart)
         finally:
             session.close()
 
-    # ------------------------
-    # Checkout
-    # ------------------------
-
     @classmethod
     def checkout(cls, user_id: int, address_id: int):
+        """
+        Creates the order and:
+        - If PAYMENT_MODE=razorpay → returns razorpay_order_id for frontend to open Razorpay popup
+        - If PAYMENT_MODE=mock → completes order immediately
+        """
         session: Session = SessionLocal()
         try:
-            cart = session.query(Cart).filter_by(user_id=user_id).first()
+            cart = session.query(Cart).options(
+                joinedload(Cart.items).joinedload(CartItem.variant),
+                joinedload(Cart.items).joinedload(CartItem.product),
+            ).filter_by(user_id=user_id).first()
+
             if not cart or not cart.items:
                 raise HTTPException(status_code=400, detail="Cart is empty")
 
-            # ✅ Validate stock and deduct before creating order
+            # ✅ Validate and deduct stock
             for item in cart.items:
                 if item.variant_id:
                     variant = session.get(ProductVariant, item.variant_id)
                     if not variant:
-                        raise HTTPException(400, f"Variant not found for product {item.product_id}")
+                        raise HTTPException(400, f"Variant not found")
                     if variant.stock < item.quantity:
-                        raise HTTPException(400, f"Not enough stock. Only {variant.stock} left.")
+                        raise HTTPException(400, f"Only {variant.stock} items left in stock")
                     variant.stock -= item.quantity
-                else:
-                    product = session.get(Product, item.product_id)
-                    if not product:
-                        raise HTTPException(400, f"Product {item.product_id} not found")
 
+            config = AppConfig.get_config()
+            use_razorpay = config.PAYMENT_MODE == "razorpay"
+
+            # Create order (no payment record yet for razorpay)
             order = OrderService.create_from_cart(
                 session=session,
                 user_id=user_id,
                 address_id=address_id,
                 cart=cart,
-                mock_payment=True,
+                mock_payment=not use_razorpay,
             )
 
             # Clear cart
             session.query(CartItem).filter_by(cart_id=cart.id).delete()
-
-            # 🔥 SINGLE COMMIT POINT
             session.commit()
 
-            return {
-                "order_id": order.id,
-                "status": order.status,
-                "payment": "mock_success",
-            }
+            if use_razorpay:
+                # Return razorpay order details for frontend popup
+                from apps.payments.services.factory import get_payment_gateway
+                from apps.payments.models import Payment
+                gateway = get_payment_gateway()
+                rzp_result = gateway.create_payment(order)
+
+                # Save payment record
+                payment = Payment(
+                    order_id=order.id,
+                    razorpay_order_id=rzp_result["razorpay_order_id"],
+                    amount=order.total_amount,
+                    status="created",
+                )
+                session.add(payment)
+                session.commit()
+
+                return {
+                    "mode": "razorpay",
+                    "order_id": order.id,
+                    "razorpay_order_id": rzp_result["razorpay_order_id"],
+                    "amount": rzp_result["amount"],
+                    "currency": rzp_result["currency"],
+                    "key_id": rzp_result["key_id"],
+                }
+            else:
+                return {
+                    "mode": "mock",
+                    "order_id": order.id,
+                    "status": order.status,
+                }
 
         except Exception:
             session.rollback()
