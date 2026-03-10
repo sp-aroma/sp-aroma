@@ -171,6 +171,20 @@ class CartService:
             if not cart or not cart.items:
                 raise HTTPException(status_code=400, detail="Cart is empty")
 
+            # ✅ Validate stock and deduct before creating order
+            for item in cart.items:
+                if item.variant_id:
+                    variant = session.get(ProductVariant, item.variant_id)
+                    if not variant:
+                        raise HTTPException(400, f"Variant not found for product {item.product_id}")
+                    if variant.stock < item.quantity:
+                        raise HTTPException(400, f"Not enough stock. Only {variant.stock} left.")
+                    variant.stock -= item.quantity
+                else:
+                    product = session.get(Product, item.product_id)
+                    if not product:
+                        raise HTTPException(400, f"Product {item.product_id} not found")
+
             order = OrderService.create_from_cart(
                 session=session,
                 user_id=user_id,
