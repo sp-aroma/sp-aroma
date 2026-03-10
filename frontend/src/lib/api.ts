@@ -597,3 +597,18 @@ export const apiGetAllPayments = (skip: number = 0, limit: number = 100) =>
 // ATTRIBUTES API
 // ===============================
 export const apiGetAttributes = () => getJson('/attributes');
+
+export const formatIST = (dateStr: string): string => {
+  if (!dateStr) return '—';
+  const date = new Date(dateStr + (dateStr.includes('Z') ? '' : 'Z')); // treat as UTC
+  return date.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: 'numeric',
+    month: 'numeric', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+};

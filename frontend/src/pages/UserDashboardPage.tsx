@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useConfirm } from '../contexts/ConfirmDialogContext';
-import { apiGetCurrentUser, apiGetOrders, apiUpdateCurrentUser, apiDeleteAccount, apiGetAddresses, apiCreateAddress, apiUpdateAddress, apiDeleteAddress } from '../lib/api';
+import { apiGetCurrentUser, apiGetOrders, apiUpdateCurrentUser, apiDeleteAccount, apiGetAddresses, apiCreateAddress, apiUpdateAddress, apiDeleteAddress, formatIST } from '../lib/api';
 import OrderDetailsModal from '../components/OrderDetailsModal';
 import { User, Package, MapPin, ShieldCheck, Edit2, Eye, Trash2, Save, X, Plus } from 'lucide-react';
 
@@ -475,7 +475,7 @@ const UserDashboardPage = () => {
                               </span>
                             </div>
                             <p className="text-sm text-gray-600">
-                              Placed on {new Date(orderDate).toLocaleDateString()} at {new Date(orderDate).toLocaleTimeString()}
+                              Placed on {formatIST(orderDate)}
                             </p>
                             <p className="text-lg font-medium text-heading">₹{orderTotal.toFixed(2)}</p>
                           </div>
